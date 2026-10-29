@@ -1,0 +1,89 @@
+name: Build Cast Button IPA
+
+# Builds an unsigned "full" Nuvio iOS IPA on a GitHub-hosted macOS runner so the
+# in-player Cast button patch can be installed from Windows with Sideloadly.
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration
+        required: true
+        type: choice
+        options:
+          - Release
+          - Debug
+        default: Release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-cast-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build unsigned full ${{ inputs.configuration }} IPA
+    runs-on: macos-latest
+    timeout-minutes: 150
+    env:
+      GRADLE_OPTS: -Dfile.encoding=UTF-8
+      IOS_CONFIGURATION: ${{ inputs.configuration }}
+      KOTLIN_DAEMON_JVMARGS: -Xmx2048M
+      NUVIO_GRADLE_JVMARGS: -Xmx4608M -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768M
+      NUVIO_KOTLIN_NATIVE_JVMARGS: -Xmx4608M
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache Kotlin Native
+        uses: actions/cache@v5
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: |
+            konan-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Verify Apple toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Prepare iOS dependencies
+        run: ./scripts/prepare-ios-dependencies.sh
+
+      - name: Build unsigned full ${{ inputs.configuration }} IPA
+        run: ./scripts/build-ios-ipa.sh
+
+      - name: Summarize IPA
+        run: |
+          ipa_path="$(find build/ios-ipa -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          if [[ -z "${ipa_path}" ]]; then
+            echo "No IPA was produced." >&2
+            exit 1
+          fi
+          {
+            echo "## Cast button IPA"
+            echo
+            echo "- File: $(basename "${ipa_path}")"
+            echo "- Size: $(du -h "${ipa_path}" | cut -f1)"
+            echo "- Signing: unsigned"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuvio-cast-button-ipa
+          path: build/ios-ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
