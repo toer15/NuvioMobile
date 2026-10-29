@@ -32,6 +32,12 @@ jobs:
       KOTLIN_DAEMON_JVMARGS: -Xmx2048M
       NUVIO_GRADLE_JVMARGS: -Xmx4608M -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768M
       NUVIO_KOTLIN_NATIVE_JVMARGS: -Xmx4608M
+      # The app's public client config, read from the official full release IPA.
+      # These are not secrets: the anon key is the app's public Supabase key.
+      NUVIO_SUPABASE_URL: https://api.nuvio.tv
+      NUVIO_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzgxNTIxMzQ2LCJleHAiOjE5MzkyMDEzNDZ9.tmQaj682pwzehpqlgCDMnySOqiUvpgRbrE43T4VJpDI
+      NUVIO_SUPABASE_FALLBACK_URL: https://api-two.nuvioapp.space
+      TMDB_API_KEY: 01926d2187b6a5d861eefc750e9df3e3
 
     steps:
       - name: Check out source
@@ -58,6 +64,17 @@ jobs:
         run: |
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Write runtime properties
+        # The Gradle task treats local.properties as an input file and fails when
+        # the file is missing, so an empty-ish one has to exist for an unsigned build.
+        run: |
+          cat > local.properties <<'PROPS'
+          MDBLIST_CLIENT_ID=kMMZyv8qithmUSF5102U6HTAPEDqfHtNbn1W4gkz
+          INTRODB_API_URL=https://api.introdb.app/
+          IMDB_RATINGS_API_BASE_URL=https://seriesgraph.com/
+          IMDB_TAPFRAME_API_BASE_URL=https://imdb.tapframe.space/
+          PROPS
 
       - name: Prepare iOS dependencies
         run: ./scripts/prepare-ios-dependencies.sh
