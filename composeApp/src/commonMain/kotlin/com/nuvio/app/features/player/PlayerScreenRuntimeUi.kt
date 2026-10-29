@@ -300,6 +300,8 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
     val partyState by PartyRepository.state.collectAsStateWithLifecycle()
     val partyActive = partyState.party != null
     val playerBadges = rememberPlayerBadges()
+    // Hardware-free cast: the button only exists once the Nuvio Cast addon is installed.
+    val bridgeCastLink = nuvioBridgeCastLink(activeSourceUrl, title)
     LaunchedEffect(folded) {
         if (folded) {
             controlsVisible = true
@@ -375,6 +377,11 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
             onEpisodesClick = if (isSeries) { { openEpisodesPanel() } } else null,
             chapters = chapters,
             onChaptersClick = if (chapters.isNotEmpty()) { { openChaptersPanel() } } else null,
+            onCastClick = if (bridgeCastLink != null && args.onOpenExternalUrl != null) {
+                { args.onOpenExternalUrl?.invoke(bridgeCastLink) }
+            } else {
+                null
+            },
             onOpenInExternalPlayer = args.onOpenInExternalPlayer
                 ?.takeUnless { ServerStreams.isServerSourceId(activeProviderAddonId) }
                 ?.let { openExternal ->

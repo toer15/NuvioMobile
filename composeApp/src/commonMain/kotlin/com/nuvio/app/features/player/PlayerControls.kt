@@ -124,6 +124,7 @@ internal fun PlayerControlsShell(
     onOpenInExternalPlayer: (() -> Unit)? = null,
     onSubmitIntroClick: (() -> Unit)? = null,
     onSwitchEngineClick: (() -> Unit)? = null,
+    onCastClick: (() -> Unit)? = null,
     onStreamInfoClick: () -> Unit = {},
     parentalWarnings: List<ParentalWarning> = emptyList(),
     showParentalGuide: Boolean = false,
@@ -263,6 +264,7 @@ internal fun PlayerControlsShell(
                         onPartyClick = onPartyClick,
                         partyActive = partyActive,
                         onSwitchEngineClick = onSwitchEngineClick,
+                        onCastClick = onCastClick,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Top))
